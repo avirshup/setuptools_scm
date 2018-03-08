@@ -114,7 +114,7 @@ def test_parse_no_worktree(tmpdir):
 def version_1_0(wd):
     wd('hg branch default')
     wd.commit_testfile()
-    wd('hg tag 1.0')
+    wd('hg tag 1.0 -u test -d "0 0"')
     return wd
 
 
@@ -146,7 +146,7 @@ def test_version_bump_from_merge_commits(pre_merge_commit_after_tag):
 
 def test_version_with_user_modified_hgtags(wd):
     wd.commit_testfile()
-    wd('hg tag 1.0')
+    wd('hg tag 1.0 -u test -d "0 0"')
     with open('.hgtags', 'a') as tagfile:
         tagfile.write('0  0')
     assert wd.version == '1.0'  # just modified hgtags, no version bump
