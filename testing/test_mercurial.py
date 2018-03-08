@@ -118,15 +118,13 @@ def version_1_0(wd):
     return wd
 
 
-def test_version_1_0(version_1_0):
-    assert version_1_0.version == '1.0'  # sanity check
-
-
 @pytest.fixture
 def pre_merge_commit_after_tag(version_1_0):
     wd = version_1_0
     wd('hg branch testbranch')
-    wd.commit_testfile()
+    wd.write('branchfile', 'branchtext')
+    wd(wd.add_command)
+    wd.commit()
     wd('hg update default')
     wd('hg merge testbranch')
     return wd
@@ -138,19 +136,20 @@ def test_version_bump_before_merge_commit(pre_merge_commit_after_tag):
 
 
 @pytest.mark.issue(219)
-def test_version_bump_from_merge_commits(pre_merge_commit_after_tag):
+def test_version_bump_from_merge_commit(pre_merge_commit_after_tag):
     wd = pre_merge_commit_after_tag
     wd.commit()
     assert wd.version.startswith('1.1.dev3+')  # issue 219
 
 
-def test_version_with_user_modified_hgtags(wd):
-    wd.commit_testfile()
-    wd('hg tag 1.0 -u test -d "0 0"')
-    with open('.hgtags', 'a') as tagfile:
-        tagfile.write('0  0')
-    assert wd.version == '1.0'  # just modified hgtags, no version bump
-    wd.write('test.txt', 'test')
-    assert wd.version.startswith('1.1.dev1+')  # bump from tracked file
+def test_version_bump_from_commit_including_hgtag_mods(version_1_0):
+    """ Test the case where a commit includes changes to .hgtags and other files
+    """
+    wd = version_1_0
+    with wd.cwd.join('.hgtags').open('a') as tagfile:
+        tagfile.write('0  0\n')
+    wd.write('branchfile', 'branchtext')
+    wd(wd.add_command)
+    assert wd.version.startswith('1.1.dev1+')  # bump from dirty version
     wd.commit()  # commits both the testfile _and_ .hgtags
     assert wd.version.startswith('1.1.dev2+')
