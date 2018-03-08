@@ -111,11 +111,20 @@ def test_parse_no_worktree(tmpdir):
 
 
 @pytest.fixture
-def pre_merge_commit_after_tag(wd):
+def version_1_0(wd):
     wd('hg branch default')
     wd.commit_testfile()
     wd('hg tag 1.0')
-    assert wd.version == '1.0'  # sanity check
+    return wd
+
+
+def test_version_1_0(version_1_0):
+    assert version_1_0.version == '1.0'  # sanity check
+
+
+@pytest.fixture
+def pre_merge_commit_after_tag(version_1_0):
+    wd = version_1_0
     wd('hg branch testbranch')
     wd.commit_testfile()
     wd('hg update default')
@@ -123,9 +132,25 @@ def pre_merge_commit_after_tag(wd):
     return wd
 
 
+def test_version_bump_before_merge_commit(pre_merge_commit_after_tag):
+    wd = pre_merge_commit_after_tag
+    assert wd.version.startswith('1.1.dev1+')
+
+
 @pytest.mark.issue(219)
 def test_version_bump_from_merge_commits(pre_merge_commit_after_tag):
     wd = pre_merge_commit_after_tag
-    assert wd.version.startswith('1.1.dev')  # sanity check
     wd.commit()
-    assert wd.version.startswith('1.1.dev')  # issue 219
+    assert wd.version.startswith('1.1.dev3+')  # issue 219
+
+
+def test_version_with_user_modified_hgtags(wd):
+    wd.commit_testfile()
+    wd('hg tag 1.0')
+    with open('.hgtags', 'a') as tagfile:
+        tagfile.write('0  0')
+    assert wd.version == '1.0'  # just modified hgtags, no version bump
+    wd.write('test.txt', 'test')
+    assert wd.version.startswith('1.1.dev1+')  # bump from tracked file
+    wd.commit()  # commits both the testfile _and_ .hgtags
+    assert wd.version.startswith('1.1.dev2+')
