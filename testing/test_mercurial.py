@@ -108,3 +108,24 @@ def test_version_in_merge(wd):
 def test_parse_no_worktree(tmpdir):
     ret = parse(str(tmpdir))
     assert ret is None
+
+
+@pytest.fixture
+def pre_merge_commit_after_tag(wd):
+    wd('hg branch default')
+    wd.commit_testfile()
+    wd('hg tag 1.0')
+    assert wd.version == '1.0'  # sanity check
+    wd('hg branch testbranch')
+    wd.commit_testfile()
+    wd('hg update default')
+    wd('hg merge testbranch')
+    return wd
+
+
+@pytest.mark.issue(219)
+def test_version_bump_from_merge_commits(pre_merge_commit_after_tag):
+    wd = pre_merge_commit_after_tag
+    assert wd.version.startswith('1.1.dev')  # sanity check
+    wd.commit()
+    assert wd.version.startswith('1.1.dev')  # issue 219 is fixed when this passes
