@@ -119,8 +119,7 @@ def version_1_0(wd):
 
 
 @pytest.fixture
-def pre_merge_commit_after_tag(version_1_0):
-    wd = version_1_0
+def pre_merge_commit_after_tag(wd, version_1_0):
     wd('hg branch testbranch')
     wd.write('branchfile', 'branchtext')
     wd(wd.add_command)
@@ -130,22 +129,22 @@ def pre_merge_commit_after_tag(version_1_0):
     return wd
 
 
-def test_version_bump_before_merge_commit(pre_merge_commit_after_tag):
-    wd = pre_merge_commit_after_tag
+@pytest.mark.usefixtures("pre_merge_commit_after_tag")
+def test_version_bump_before_merge_commit(wd):
     assert wd.version.startswith('1.1.dev1+')
 
 
 @pytest.mark.issue(219)
-def test_version_bump_from_merge_commit(pre_merge_commit_after_tag):
-    wd = pre_merge_commit_after_tag
+@pytest.mark.usefixtures("pre_merge_commit_after_tag")
+def test_version_bump_from_merge_commit(wd):
     wd.commit()
     assert wd.version.startswith('1.1.dev3+')  # issue 219
 
 
-def test_version_bump_from_commit_including_hgtag_mods(version_1_0):
+@pytest.mark.usefixtures("version_1_0")
+def test_version_bump_from_commit_including_hgtag_mods(wd):
     """ Test the case where a commit includes changes to .hgtags and other files
     """
-    wd = version_1_0
     with wd.cwd.join('.hgtags').open('a') as tagfile:
         tagfile.write('0  0\n')
     wd.write('branchfile', 'branchtext')
